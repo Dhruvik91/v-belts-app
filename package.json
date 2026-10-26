@@ -1,0 +1,41 @@
+{
+  "name": "vbelt-inventory-app",
+  "version": "1.1.3",
+  "description": "Portable V-Belt & Timing Belt Inventory Management",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:dir": "electron-builder --dir",
+    "dist:win": "electron-builder --win portable",
+    "dist:linux": "electron-builder --linux AppImage"
+  },
+  "build": {
+    "appId": "com.vbelt.inventory",
+    "productName": "VBelt-Inventory",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "vbelt/**/*"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "keywords": [
+    "inventory",
+    "portable",
+    "vbelt"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.2.0",
+    "electron-builder": "^26.15.3"
+  }
+}

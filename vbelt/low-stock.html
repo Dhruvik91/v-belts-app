@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Low Stock Items</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="db.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9
+        }
+
+        .sidebar {
+            width: 220px;
+            height: 100vh;
+            background: #0f172a;
+            color: white;
+            position: fixed;
+            padding: 20px
+        }
+
+        .sidebar h2 {
+            text-align: center
+        }
+
+        .sidebar button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer
+        }
+
+        .sidebar button:hover {
+            background: #334155
+        }
+
+        .main {
+            margin-left: 240px;
+            padding: 30px
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .06)
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 14px
+        }
+
+        th {
+            background: #fee2e2
+        }
+
+        .search-input {
+            width: 300px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 15px;
+            font-family: inherit
+        }
+
+        .low-row {
+            background: #fff1f2
+        }
+
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px
+        }
+
+        .card-header h3 {
+            margin: 0
+        }
+
+        .po-btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.25);
+            transition: 0.2s;
+        }
+
+        .po-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .po-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Inventory</h2>
+        <button onclick="location.href='index.html'">Dashboard</button>
+        <button onclick="location.href='products.html'">Inventory</button>
+        <button onclick="location.href='products.html#bulkSub'">Bulk Subtract</button>
+        <button onclick="location.href='products.html#bulkAdd'">Bulk Add</button>
+        <button onclick="location.href='party.html'">Party List</button>
+        <button onclick="location.href='low-stock.html'">Low Stock Items</button>
+        <button onclick="location.href='timing-belt.html'">Timing Belt</button>
+    </div>
+
+    <div class="main">
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Low Stock Items</h3>
+                <button class="po-btn" onclick="location.href='purchase-order.html'">
+                    📄 Generate Purchase Order
+                </button>
+            </div>
+
+            <input type="text" id="searchLowStock" class="search-input" placeholder="Search by product or category...">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Qty</th>
+                        <th>Min Qty</th>
+                        <th>Low Since</th>
+                        <th>Days</th>
+                    </tr>
+                </thead>
+                <tbody id="lowStockList"></tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+    <script>
+        let products = [];
+
+        function daysBetween(dateStr) {
+            const d1 = new Date(dateStr);
+            const d2 = new Date();
+            return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+
+        async function renderLowStock() {
+
+            const tbody = document.getElementById("lowStockList");
+            tbody.innerHTML = "";
+
+            const lowItems = products.filter(p => p.qty <= p.minQty);
+
+            if (!lowItems.length) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">No Low Stock Items 🎉</td></tr>`;
+                return;
+            }
+
+            let updated = false;
+            lowItems.forEach(p => {
+                if (!p.lowStockDate) {
+                    p.lowStockDate = new Date().toISOString();
+                    updated = true;
+                }
+            });
+
+            const q = document.getElementById("searchLowStock").value.trim().toLowerCase();
+            const visibleItems = lowItems.filter(p =>
+                p.name.toLowerCase().includes(q) ||
+                (p.category || "").toLowerCase().includes(q)
+            );
+
+            if (!visibleItems.length) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#64748b">No matching items found</td></tr>`;
+            }
+
+            visibleItems.forEach(p => {
+
+                const days = daysBetween(p.lowStockDate);
+
+                const tr = document.createElement("tr");
+                tr.className = "low-row";
+
+                tr.innerHTML = `
+            <td>${p.name}</td>
+            <td>${p.category}</td>
+            <td>${p.qty}</td>
+            <td>${p.minQty}</td>
+            <td>${new Date(p.lowStockDate).toLocaleDateString()}</td>
+            <td>${days}</td>
+        `;
+
+                tbody.appendChild(tr);
+            });
+
+            if (updated) {
+                await DB.saveAll("products", products);
+            }
+        }
+
+        function debounce(fn, delay = 300) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        document.getElementById("searchLowStock").addEventListener("input", debounce(renderLowStock));
+
+        /* Keyboard shortcuts */
+        document.addEventListener("keydown", function (e) {
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+
+            switch (e.key.toLowerCase()) {
+                case "d": location.href = "index.html"; break;
+                case "i": location.href = "products.html"; break;
+                case "a": location.href = "products.html#bulkAdd"; break;
+                case "s": location.href = "products.html#bulkSub"; break;
+            }
+        }, true);
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await DB.init();
+                products = await DB.getAll("products");
+                await renderLowStock();
+            } catch (e) {
+                console.error("Failed to initialize database:", e);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

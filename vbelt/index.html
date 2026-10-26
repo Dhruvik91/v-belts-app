@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<!-- PDF Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="db.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #f1f5f9;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    height: 100vh;
+    background: #0f172a;
+    color: white;
+    position: fixed;
+    padding: 20px;
+}
+.sidebar h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.sidebar button {
+    width: 100%;
+    background: #1e293b;
+    color: white;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.sidebar button:hover {
+    background: #334155;
+}
+
+/* Main */
+.main {
+    margin-left: 240px;
+    padding: 30px;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+/* Stats */
+.dashboard {
+    display: flex;
+    gap: 20px;
+}
+.stat {
+    flex: 1;
+    text-align: center;
+}
+.stat h3 {
+    color: #64748b;
+}
+.stat p {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* Inputs */
+input {
+    width: 100%;
+    padding: 10px;
+    padding-right: 0px;
+    margin-top: 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+/* Button */
+button.primary {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    padding-right: 0px; 
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+button.primary:hover {
+    background: #1d4ed8;
+}
+
+/* Low stock alert */
+.alert {
+    border-left: 6px solid #ef4444;
+    background: #fee2e2;
+}
+.alert h3 {
+    color: #991b1b;
+}
+.alert ul {
+    margin-top: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.alert li {
+    margin-bottom: 6px;
+}
+
+/* Export Button */
+.export-btn {
+    background: #dc2626;
+    color: white;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+}
+.export-btn:hover {
+    background: #b91c1c;
+}
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>Inventory</h2>
+    <button onclick="location.href='index.html'">Dashboard</button>
+    <button onclick="location.href='products.html'">Inventory</button>
+    <button onclick="location.href='products.html#bulkSub'">Bulk Subtract</button>    
+    <button onclick="location.href='products.html#bulkAdd'">Bulk Add</button>
+    <button onclick="location.href='party.html'">Party List</button>
+    <button onclick="location.href='low-stock.html'">Low Stock Items</button>
+    <button onclick="location.href='timing-belt.html'">Timing Belt</button>
+
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+    <!-- DASHBOARD STATS -->
+    <div class="card dashboard">
+        <div class="stat">
+            <h3>Total Products</h3>
+            <p id="totalProducts">0</p>
+        </div>
+        <div class="stat">
+            <h3>Low Stock Items</h3>
+            <p id="lowStockCount">0</p>
+        </div>
+    </div>
+
+    <!-- LOW STOCK ALERT -->
+     <!--
+    <div class="card alert" id="lowStockAlert" style="display:none;">
+        <h3>⚠️ Low Stock Alert</h3>
+        <ul id="lowStockList"></ul>
+    </div> 
+    -->
+
+    <!-- ADD PRODUCT -->
+    <div class="card">
+        <h3>Add Product</h3>
+        <input id="name" placeholder="Product Name">
+       
+        <input id="category" list="categoryList" placeholder="Select or type category">
+        <datalist id="categoryList"></datalist>
+        
+        <input id="qty" type="number" placeholder="Initial Quantity">
+        <input id="minQty" type="number" placeholder="Minimum Quantity">
+        <button class="primary" onclick="addProduct()">Add Product</button>
+    </div>
+
+    <!-- ADD PARTY -->
+    <div class="card">
+        <h3>Add Party</h3>
+
+        <input id="partyName" placeholder="Party Name">
+        <input id="partyNotes" placeholder="Notes / Discount (Eg: 5% Discount, Credit 15 days)"></input>
+
+        <button class="primary" onclick="addParty()">Add Party</button>
+    </div>
+
+
+    <!-- EXPORT TO PDF -->
+    <div class="card" style="text-align:center;">
+        <h3>📄 Export Inventory</h3>
+        <button class="export-btn" onclick="exportToPDF()">Convert to PDF</button>
+    </div>
+
+</div>
+
+<script>
+let products = [];
+let parties = [];
+
+/* Update dashboard */
+function updateDashboard() {
+    const totalProducts = document.getElementById("totalProducts");
+    const lowStockCount = document.getElementById("lowStockCount");
+    const lowStockAlert = document.getElementById("lowStockAlert");
+    const lowStockList = document.getElementById("lowStockList");
+
+    if (totalProducts) totalProducts.innerText = products.length;
+
+    const lowStock = products.filter(p => p.qty <= p.minQty);
+    if (lowStockCount) lowStockCount.innerText = lowStock.length;
+
+    if (lowStockList) {
+        lowStockList.innerHTML = "";
+        if (lowStock.length > 0) {
+            if (lowStockAlert) lowStockAlert.style.display = "block";
+            lowStock.forEach(p => {
+                const li = document.createElement("li");
+                li.innerText = `${p.name} → Qty: ${p.qty} | Min: ${p.minQty}`;
+                lowStockList.appendChild(li);
+            });
+        } else {
+            if (lowStockAlert) lowStockAlert.style.display = "none";
+        }
+    }
+}
+
+/* Add product */
+async function addProduct() {
+    const name = document.getElementById("name").value.trim();
+    const cat = document.getElementById("category").value.trim();
+    const qty = parseInt(document.getElementById("qty").value);
+    const min = parseInt(document.getElementById("minQty").value);
+
+
+    if (!name || !cat || isNaN(qty) || isNaN(min)) {
+        showToast("Please fill all fields with valid information", "warning");
+        return;
+    }
+
+    // 🔒 DUPLICATE PRODUCT NAME CHECK
+    products = await DB.getAll("products");
+    const exists = products.some(
+        p => p.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (exists) {
+        showToast(`Product "${name}" already exists in inventory`, "error");
+        document.getElementById("name").focus();
+        return;
+    }
+
+    const product = {
+        id: Date.now(),
+        name,
+        category: cat,
+        qty,
+        minQty: min,
+        lastUpdated: new Date().toLocaleString(),
+        history: []
+    };
+
+    // Low stock tracking
+    if (qty <= min) {
+        product.lowStockDate = new Date().toISOString();
+    }
+
+    products.push(product);
+    await DB.saveAll("products", products);
+
+    showToast(`Product "${name}" added successfully!`, "success");
+
+    document.getElementById("name").value = "";
+    document.getElementById("category").value = "";
+    document.getElementById("qty").value = "";
+    document.getElementById("minQty").value = "";
+
+    document.getElementById("name").focus();
+
+    await loadCategories();
+    updateDashboard();
+}
+
+
+
+
+async function loadCategories() {
+    products = await DB.getAll("products");
+    const list = document.getElementById("categoryList");
+
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    const categories = [...new Set(products.map(p => p.category))];
+
+    categories.forEach(cat => {
+        if (!cat) return;
+        const opt = document.createElement("option");
+        opt.value = cat;
+        list.appendChild(opt);
+    });
+}
+
+
+
+
+
+
+function generatePartyCode() {
+    if (parties.length === 0) return "P001";
+
+    const nums = parties.map(p => parseInt(p.code.replace("P","")) || 0);
+    const max = Math.max(...nums);
+
+    return "P" + String(max + 1).padStart(3, "0");
+}
+
+
+
+
+/*ADD PARTY FUNCTION*/
+async function addParty() {
+    const name = document.getElementById("partyName").value.trim();
+    const notes = document.getElementById("partyNotes").value.trim();
+
+    if (!name) {
+        showToast("Please enter Party Name", "warning");
+        return;
+    }
+
+    parties = await DB.getAll("parties");
+    const code = generatePartyCode();
+
+    parties.push({
+        id: Date.now(),
+        code,
+        name,
+        notes
+    });
+
+    await DB.saveAll("parties", parties);
+
+    showToast(`Party "${name}" added successfully! (Code: ${code})`, "success");
+
+    document.getElementById("partyName").value = "";
+    document.getElementById("partyNotes").value = "";
+}
+
+
+/* EXPORT TO PDF (CATEGORY SORTED) */
+function exportToPDF() {
+    if (products.length === 0) {
+        showToast("No inventory data available to export", "warning");
+        return;
+    }
+
+    const sorted = [...products].sort((a, b) =>
+        a.category.localeCompare(b.category)
+    );
+
+    const rows = sorted.map(p => [
+        p.category,
+        p.name,
+        p.qty,
+        p.minQty,
+        p.lastUpdated
+    ]);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+
+    doc.text("Inventory Report", 14, 15);
+
+    doc.autoTable({
+        startY: 20,
+        head: [["Category", "Product", "Qty", "Min Qty", "Last Updated"]],
+        body: rows,
+        styles: { fontSize: 9 }
+    });
+
+    doc.save("inventory.pdf");
+}
+
+// Initialize database and load categories / dashboard
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await DB.init();
+        products = await DB.getAll("products");
+        parties = await DB.getAll("parties");
+        await loadCategories();
+        updateDashboard();
+    } catch (e) {
+        console.error("Failed to initialize database:", e);
+    }
+});
+
+
+
+
+/* ===== GLOBAL ERP SHORTCUTS (FINAL FIX — ALL DIRECTIONS WORK) ===== */
+
+document.addEventListener("keydown", function (e) {
+
+    if (!e.ctrlKey) return;
+
+    const key = e.key.toLowerCase();
+    e.preventDefault();
+    e.stopPropagation();
+
+    const onProductsPage = window.location.pathname.endsWith("products.html");
+
+    switch (key) {
+
+        case "d":
+            // Always go to Dashboard
+            window.location.href = "index.html";
+            break;
+
+        case "i":
+            // Inventory
+            if (onProductsPage) {
+                showSection("inventory");
+            } else {
+                window.location.href = "products.html";
+            }
+            break;
+
+        case "a":
+            // Bulk Add
+            if (onProductsPage) {
+                showSection("bulkAdd");
+            } else {
+                window.location.href = "products.html#bulkAdd";
+            }
+            break;
+
+        case "s":
+            // Bulk Subtract
+            if (onProductsPage) {
+                showSection("bulkSub");
+            } else {
+                window.location.href = "products.html#bulkSub";
+            }
+            break;
+    }
+
+}, true);
+
+/* AUTO OPEN SECTION IF HASH EXISTS */
+if (window.location.pathname.endsWith("products.html")) {
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "bulkAdd") showSection("bulkAdd");
+    else if (hash === "bulkSub") showSection("bulkSub");
+    else showSection("inventory");
+}
+
+</script>
+
+</body>
+</html>

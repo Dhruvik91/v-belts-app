@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Party List</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="db.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9
+        }
+
+        .sidebar {
+            width: 220px;
+            height: 100vh;
+            background: #0f172a;
+            color: white;
+            position: fixed;
+            padding: 20px
+        }
+
+        .sidebar h2 {
+            text-align: center
+        }
+
+        .sidebar button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer
+        }
+
+        .sidebar button:hover {
+            background: #334155
+        }
+
+        .main {
+            margin-left: 240px;
+            padding: 30px
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, .05)
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 14px
+        }
+
+        th {
+            background: #f1f5f9
+        }
+
+        .small-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .edit {
+            background: #22c55e;
+            color: white
+        }
+
+        .delete {
+            background: #ef4444;
+            color: white
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.15s ease;
+        }
+
+        .modal.open {
+            display: flex !important;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 440px;
+            margin: 0 auto;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e2e8f0;
+            animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            line-height: 1;
+        }
+
+        .modal-close-btn:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .modal-group label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+
+        .modal-group input, .modal-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .modal-btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .modal-btn-cancel {
+            background: #f1f5f9;
+            color: #334155;
+        }
+
+        .modal-btn-cancel:hover { background: #e2e8f0; }
+
+        .modal-btn-save {
+            background: #2563eb;
+            color: white;
+        }
+
+        .modal-btn-save:hover { background: #1d4ed8; }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Inventory</h2>
+        <button onclick="location.href='index.html'">Dashboard</button>
+        <button onclick="location.href='products.html'">Inventory</button>
+        <button onclick="location.href='products.html#bulkSub'">Bulk Subtract</button>
+        <button onclick="location.href='products.html#bulkAdd'">Bulk Add</button>
+        <button onclick="location.href='party.html'">Party List</button>
+        <button onclick="location.href='low-stock.html'">Low Stock Items</button>
+        <button onclick="location.href='timing-belt.html'">Timing Belt</button>
+    </div>
+
+    <div class="main">
+
+        <div class="card">
+            <h3>Party List</h3>
+
+            <input id="search" placeholder="Search party by code, name or notes...">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Notes / Discount</th>
+                        <th>Edit</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody id="partyList"></tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Party</h3>
+                <button class="modal-close-btn" onclick="closeEdit()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-group">
+                    <label for="editCode">Party Code</label>
+                    <input id="editCode" placeholder="Party Code" readonly style="background: #f8fafc; cursor: not-allowed;">
+                </div>
+
+                <div class="modal-group">
+                    <label for="editName">Party Name</label>
+                    <input id="editName" placeholder="Enter party name">
+                </div>
+
+                <div class="modal-group">
+                    <label for="editNotes">Notes / Terms</label>
+                    <textarea id="editNotes" rows="3" placeholder="Notes / Discount (e.g. 5% Discount, Credit 15 days)"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeEdit()">Cancel</button>
+                <button class="modal-btn modal-btn-save" onclick="saveEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let parties = [];
+        let editIndex = null;
+
+        function renderPartyList() {
+            const q = document.getElementById("search").value.trim().toLowerCase();
+            const partyList = document.getElementById("partyList");
+            partyList.innerHTML = "";
+
+            // Keep the original index so Edit/Delete target the right party while filtered
+            const matches = parties
+                .map((p, i) => ({ p, i }))
+                .filter(({ p }) =>
+                    p.code.toLowerCase().includes(q) ||
+                    p.name.toLowerCase().includes(q) ||
+                    (p.notes || "").toLowerCase().includes(q)
+                );
+
+            if (!matches.length) {
+                partyList.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#64748b">No parties found</td></tr>`;
+                return;
+            }
+
+            matches
+                .forEach(({ p, i }) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${p.code}</td>
+            <td>${p.name}</td>
+            <td>${p.notes || ""}</td>
+            <td><button class="small-btn edit" onclick="openEdit(${i})">✏</button></td>
+            <td><button class="small-btn delete" onclick="deleteParty(${i})">🗑</button></td>
+        `;
+                    partyList.appendChild(tr);
+                });
+        }
+
+        function debounce(fn, delay = 300) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        document.getElementById("search").addEventListener("input", debounce(renderPartyList));
+
+        function openEdit(index) {
+            editIndex = index;
+            document.getElementById("editCode").value = parties[index].code;
+            document.getElementById("editName").value = parties[index].name;
+            document.getElementById("editNotes").value = parties[index].notes || "";
+            const modal = document.getElementById("editModal");
+            modal.classList.add("open");
+            modal.style.display = "flex";
+            setTimeout(() => document.getElementById("editName").focus(), 80);
+        }
+
+        function closeEdit() {
+            const modal = document.getElementById("editModal");
+            modal.classList.remove("open");
+            modal.style.display = "none";
+            editIndex = null;
+        }
+
+        async function saveEdit() {
+            const name = document.getElementById("editName").value.trim();
+            const notes = document.getElementById("editNotes").value.trim();
+
+            if (!name) {
+                showToast("Please enter a party name", "warning");
+                return;
+            }
+
+            parties[editIndex].name = name;
+            parties[editIndex].notes = notes;
+
+            await DB.saveAll("parties", parties);
+
+            closeEdit();
+            renderPartyList();
+            showToast(`Party "${name}" updated successfully`, "success");
+        }
+
+        async function deleteParty(i) {
+            const party = parties[i];
+            const name = party ? party.name : "this party";
+
+            const ok = await showConfirm(`Are you sure you want to permanently delete party "${name}"?`, {
+                title: "Delete Party",
+                confirmText: "Delete",
+                isDanger: true
+            });
+
+            if (!ok) return;
+
+            parties.splice(i, 1);
+            await DB.saveAll("parties", parties);
+
+            renderPartyList();
+            showToast(`Party "${name}" deleted successfully`, "info");
+        }
+
+        // Close modal on backdrop click or Escape
+        window.addEventListener("click", function (e) {
+            const modal = document.getElementById("editModal");
+            if (e.target === modal) closeEdit();
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") closeEdit();
+        });
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await DB.init();
+                parties = await DB.getAll("parties");
+                renderPartyList();
+            } catch (e) {
+                console.error("Failed to initialize database:", e);
+            }
+        });
+
+
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape") editModal.style.display = "none";
+        });
+
+        /* Keyboard shortcuts */
+        document.addEventListener("keydown", function (e) {
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+
+            switch (e.key.toLowerCase()) {
+                case "d": location.href = "index.html"; break;
+                case "i": location.href = "products.html"; break;
+                case "a": location.href = "products.html#bulkAdd"; break;
+                case "s": location.href = "products.html#bulkSub"; break;
+            }
+        }, true);
+
+        renderPartyList();
+    </script>
+
+</body>
+
+</html>

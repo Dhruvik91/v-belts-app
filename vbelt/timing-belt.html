@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timing Belt Inventory</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="db.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --orange: #f97316;
+            --orange-hover: #ea580c;
+            --red: #ef4444;
+            --red-hover: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-page);
+            color: var(--text-dark);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            height: 100vh;
+            background: #0f172a;
+            color: white;
+            position: fixed;
+            padding: 20px;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar button {
+            width: 100%;
+            background: #1e293b;
+            color: white;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .sidebar button:hover {
+            background: #334155;
+        }
+
+        /* Main layout */
+        .main {
+            margin-left: 240px;
+            padding: 30px;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 6px 0;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Add Belt Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            font-family: inherit;
+            background: #fff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .belt-search {
+            margin-bottom: 18px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        button.primary {
+            margin-top: 16px;
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.05s active;
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        button.primary:active {
+            transform: scale(0.99);
+        }
+
+        /* ========================================================
+           NESTED TABS SYSTEM (IMAGE 2 INSPIRATION)
+           ======================================================== */
+
+        .tabs-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .tab-layer {
+            position: relative;
+        }
+
+        .tab-layer-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-layer-label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: inline-block;
+        }
+
+        /* Level 1: Type Tabs (Clean Underline Style inspired by Image 2) */
+        .type-tabs-scroll {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1.5px solid var(--border-color);
+            overflow-x: auto;
+            padding-bottom: 0px;
+            scrollbar-width: thin;
+        }
+
+        .type-tab-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            position: relative;
+            margin-bottom: -1.5px;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .type-tab-btn:hover {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .type-tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(37, 99, 235, 0.06);
+            font-weight: 700;
+        }
+
+        .type-tab-btn .badge {
+            font-size: 11px;
+            padding: 2px 7px;
+            border-radius: 12px;
+            background: #e2e8f0;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .type-tab-btn.active .badge {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Level 2: Size Tabs (Pill Bar) */
+        .size-tabs-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            align-items: center;
+        }
+
+        .size-tab-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .size-tab-btn:hover {
+            border-color: #94a3b8;
+            background: #fafafa;
+        }
+
+        .size-tab-btn.active {
+            background: #1e293b;
+            color: white;
+            border-color: #1e293b;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+        }
+
+        .size-tab-btn .size-count {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        /* Level 3: Brand Tabs (Chip Badges) */
+        .brand-tabs-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .brand-tab-btn {
+            background: white;
+            border: 1.5px solid #e2e8f0;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .brand-tab-btn:hover {
+            border-color: #38bdf8;
+            color: #0284c7;
+        }
+
+        .brand-tab-btn.active {
+            background: #0284c7;
+            color: white;
+            border-color: #0284c7;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+        }
+
+        .brand-tab-btn .brand-count {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .brand-tab-btn.active .brand-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        /* Breadcrumb / Summary Info Bar */
+        .active-selection-bar {
+            margin-top: 16px;
+            padding: 12px 18px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .breadcrumb-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e3a8a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb-text span.sep {
+            color: #94a3b8;
+            font-weight: normal;
+        }
+
+        .selection-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        /* Belt Pieces List */
+        .belt-pieces-container {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .belt-piece-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.15s ease;
+        }
+
+        .belt-piece-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            transform: translateY(-1px);
+        }
+
+        .belt-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .length-badge {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-dark);
+            min-width: 90px;
+        }
+
+        .serial-badge {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+            background: #e0e7ff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        .belt-timestamps {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .orig-length-badge {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: #f1f5f9;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .cut-status-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .cut-status-badge.full {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .cut-status-badge.cut {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        .piece-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .cut-btn {
+            background: var(--orange);
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.15s ease;
+        }
+
+        .cut-btn:hover {
+            background: var(--orange-hover);
+        }
+
+        .delete-btn {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.15s ease;
+        }
+
+        .delete-btn:hover {
+            background: var(--red-hover);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state h4 {
+            margin: 0 0 6px 0;
+            font-size: 16px;
+            color: var(--text-dark);
+        }
+
+        /* Cut Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            width: calc(100% - 32px);
+            max-width: 420px;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.open .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--text-dark);
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-confirm-cut {
+            background: var(--orange);
+            color: white;
+        }
+
+        .btn-confirm-cut:hover {
+            background: var(--orange-hover);
+        }
+
+        /* Mobile Topbar & Sidebar Header */
+        .mobile-topbar {
+            display: none;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .sidebar-close-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 26px;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+            border-radius: 6px;
+            position: absolute;
+            right: 0;
+            top: -2px;
+        }
+
+        .sidebar-close-btn:hover {
+            color: white;
+            background: #1e293b;
+        }
+
+        /* ========================================================
+           RESPONSIVE BREAKPOINTS
+           ======================================================== */
+        @media (max-width: 1024px) {
+            .main {
+                padding: 24px 20px;
+            }
+            .form-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 16px;
+                background: #0f172a;
+                color: white;
+                position: sticky;
+                top: 0;
+                z-index: 999;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            }
+
+            .mobile-menu-btn {
+                background: #1e293b;
+                border: 1px solid #334155;
+                color: white;
+                font-size: 15px;
+                font-weight: 600;
+                padding: 7px 12px;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                transition: background 0.15s ease;
+            }
+
+            .mobile-menu-btn:hover {
+                background: #334155;
+            }
+
+            .mobile-title {
+                font-size: 16px;
+                font-weight: 700;
+                letter-spacing: -0.3px;
+                color: #f8fafc;
+            }
+
+            .sidebar-backdrop {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.65);
+                backdrop-filter: blur(3px);
+                z-index: 1050;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+            }
+
+            .sidebar-backdrop.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .sidebar {
+                width: 260px;
+                max-width: 82vw;
+                z-index: 1060;
+                transform: translateX(-100%);
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: none;
+                overflow-y: auto;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+            }
+
+            .sidebar-header {
+                justify-content: space-between;
+                margin-bottom: 16px;
+            }
+
+            .sidebar-header h2 {
+                margin-bottom: 0;
+                text-align: left;
+            }
+
+            .sidebar-close-btn {
+                display: block;
+                position: static;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 16px 14px;
+            }
+
+            .page-header {
+                margin-bottom: 16px;
+            }
+
+            .page-header h1 {
+                font-size: 20px;
+            }
+
+            .page-header p {
+                font-size: 13px;
+            }
+
+            .card {
+                padding: 18px 16px;
+                border-radius: 10px;
+                margin-bottom: 16px;
+            }
+
+            .card-title {
+                font-size: 15px;
+            }
+
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .form-group:nth-child(5) {
+                grid-column: span 2;
+            }
+
+            .type-tabs-scroll {
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 2px;
+            }
+
+            .type-tab-btn {
+                padding: 9px 14px;
+                font-size: 14px;
+            }
+
+            .size-tabs-bar {
+                -webkit-overflow-scrolling: touch;
+                padding: 6px 10px;
+            }
+
+            .size-tab-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 580px) {
+            .main {
+                padding: 12px 10px;
+            }
+
+            .card {
+                padding: 16px 12px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .form-group:nth-child(5) {
+                grid-column: auto;
+            }
+
+            .active-selection-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px 14px;
+            }
+
+            .breadcrumb-text {
+                font-size: 13px;
+                flex-wrap: wrap;
+                row-gap: 4px;
+            }
+
+            .selection-stats {
+                width: 100%;
+                justify-content: space-between;
+                font-size: 12px;
+                border-top: 1px dashed rgba(59, 130, 246, 0.25);
+                padding-top: 8px;
+            }
+
+            .belt-piece-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .belt-info {
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: flex-start;
+            }
+
+            .length-badge {
+                min-width: auto;
+                font-size: 16px;
+            }
+
+            .piece-actions {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+            }
+
+            .cut-btn,
+            .delete-btn {
+                flex: 1;
+                justify-content: center;
+                padding: 9px 12px;
+                font-size: 13px;
+            }
+
+            .modal-box {
+                width: calc(100% - 24px);
+                padding: 18px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- MOBILE TOPBAR -->
+    <div class="mobile-topbar">
+        <button class="mobile-menu-btn" onclick="toggleSidebar(true)" aria-label="Open menu">☰ Menu</button>
+        <span class="mobile-title">Timing Belt Stock</span>
+        <button class="mobile-menu-btn" style="border: none; background: transparent; font-size: 18px;" onclick="location.href='products.html'" title="Inventory">📦</button>
+    </div>
+
+    <!-- BACKDROP FOR MOBILE SIDEBAR -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Inventory</h2>
+            <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close menu">&times;</button>
+        </div>
+        <button onclick="location.href='index.html'">Dashboard</button>
+        <button onclick="location.href='products.html'">Inventory</button>
+        <button onclick="location.href='products.html#bulkSub'">Bulk Subtract</button>
+        <button onclick="location.href='products.html#bulkAdd'">Bulk Add</button>
+        <button onclick="location.href='party.html'">Party List</button>
+        <button onclick="location.href='low-stock.html'">Low Stock Items</button>
+        <button onclick="location.href='timing-belt.html'">Timing Belt</button>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+        <div class="page-header">
+            <h1>Timing Belt Management</h1>
+            <p>Organize, cut, and track timing belts by Type, Size, and Brand</p>
+        </div>
+
+        <!-- ADD TIMING BELT CARD -->
+        <div class="card">
+            <div class="card-title">
+                <span>➕ Add Timing Belt Stock</span>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="beltType">Type</label>
+                    <input id="beltType" placeholder="e.g. H, T, M, NX">
+                </div>
+                <div class="form-group">
+                    <label for="beltSize">Size</label>
+                    <input id="beltSize" placeholder="e.g. 320, 340, 420">
+                </div>
+                <div class="form-group">
+                    <label for="beltBrand">Brand</label>
+                    <input id="beltBrand" placeholder="e.g. Royal, Gold, Spen">
+                </div>
+                <div class="form-group">
+                    <label for="beltLength">Width / Length (mm)</label>
+                    <input id="beltLength" type="number" placeholder="e.g. 500">
+                </div>
+                <div class="form-group">
+                    <label for="beltQty">Quantity</label>
+                    <input id="beltQty" type="number" placeholder="e.g. 5" value="1" min="1">
+                </div>
+            </div>
+
+            <button class="primary" onclick="addTimingBelt()">Add Timing Belt</button>
+        </div>
+
+        <!-- TIMING BELT STOCK WITH NESTED TABS -->
+        <div class="card">
+            <div class="card-title">
+                <span>📦 Timing Belt Stock</span>
+                <span id="totalStockBadge" style="font-size: 13px; font-weight: 500; color: var(--text-muted);"></span>
+            </div>
+
+            <div class="belt-search">
+                <input type="text" id="searchBelt" placeholder="🔎 Search by type, size, brand, length or serial (e.g. H 320 Royal 400)...">
+            </div>
+
+            <div id="timingBeltApp">
+                <!-- Dynamic nested tabs will be rendered here -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CUT MODAL -->
+    <div class="modal-overlay" id="cutModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>✂️ Cut Timing Belt</h3>
+                <button class="modal-close-btn" onclick="closeCutModal()">&times;</button>
+            </div>
+            <div id="cutModalDetails" style="margin-bottom: 14px; font-size: 14px; color: #334155;"></div>
+
+            <div class="form-group">
+                <label for="modalCutLength">Length to Cut (mm):</label>
+                <input id="modalCutLength" type="number" min="1" placeholder="Enter mm to cut off" autofocus>
+            </div>
+
+            <div id="cutCalculationPreview" style="margin-top: 10px; font-size: 13px; color: #64748b; font-weight: 500;"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeCutModal()">Cancel</button>
+                <button class="btn-confirm-cut" onclick="confirmCut()">Apply Cut</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timingBelts = [];
+
+        // Active tab states
+        let selectedType = null;
+        let selectedSize = null;
+        let selectedBrand = null;
+
+        // Current belt being cut
+        let activeBeltIdToCut = null;
+
+        function debounce(fn, delay = 300) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        document.getElementById("searchBelt").addEventListener("input", debounce(renderTimingBelts));
+
+        function formatSerial(n) {
+            return `TB-${String(n).padStart(4, "0")}`;
+        }
+
+        function serialNumberOf(belt) {
+            return parseInt(String(belt.serial || "").replace(/\D/g, ""), 10) || 0;
+        }
+
+        // Serials are never reused: the counter is kept in config and never goes below the highest serial in stock
+        async function nextSerialNumber() {
+            const last = await DB.getConfig("lastBeltSerial", 0);
+            return Math.max(parseInt(last, 10) || 0, ...timingBelts.map(serialNumberOf)) + 1;
+        }
+
+        // Give older belts (saved before serials/updatedAt existed) a serial in the order they were added
+        async function migrateBelts() {
+            const missing = timingBelts.filter(b => !b.serial).sort((a, b) => a.id - b.id);
+            const missingUpdated = timingBelts.filter(b => !b.updatedAt);
+            if (!missing.length && !missingUpdated.length) return;
+
+            let next = await nextSerialNumber();
+            missing.forEach(b => { b.serial = formatSerial(next++); });
+            missingUpdated.forEach(b => {
+                b.updatedAt = (b.history && b.history[0] && b.history[0].date) || b.createdAt;
+            });
+
+            if (missing.length) await DB.saveConfig("lastBeltSerial", next - 1);
+            await saveTimingBelts();
+        }
+
+        async function saveTimingBelts() {
+            await DB.saveAll("timingBelts", timingBelts);
+        }
+
+        async function addTimingBelt() {
+            const type = document.getElementById("beltType").value.trim().toUpperCase();
+            const size = document.getElementById("beltSize").value.trim();
+            const brand = document.getElementById("beltBrand").value.trim();
+            const length = parseInt(document.getElementById("beltLength").value);
+            const qty = parseInt(document.getElementById("beltQty").value);
+
+            if (!type || !size || !brand || isNaN(length) || length <= 0 || isNaN(qty) || qty <= 0) {
+                showToast("Please fill all fields with valid information.", "warning");
+                return;
+            }
+
+            const firstSerial = await nextSerialNumber();
+            const now = new Date().toLocaleString();
+
+            for (let i = 0; i < qty; i++) {
+                timingBelts.push({
+                    id: Date.now() + i,
+                    serial: formatSerial(firstSerial + i),
+                    type,
+                    size,
+                    brand,
+                    length,
+                    originalLength: length,
+                    createdAt: now,
+                    updatedAt: now,
+                    history: []
+                });
+            }
+
+            await DB.saveConfig("lastBeltSerial", firstSerial + qty - 1);
+            await saveTimingBelts();
+
+            // Clear inputs
+            document.getElementById("beltType").value = "";
+            document.getElementById("beltSize").value = "";
+            document.getElementById("beltBrand").value = "";
+            document.getElementById("beltLength").value = "";
+            document.getElementById("beltQty").value = "1";
+
+            // Automatically focus into the newly added type, size, brand
+            selectedType = type;
+            selectedSize = size;
+            selectedBrand = brand;
+
+            renderTimingBelts();
+            showToast(`Added ${qty} piece(s) of ${type} ${size} (${brand})`, "success");
+        }
+
+        // Search follows the tab hierarchy: Type -> Size -> Brand -> Length (mm).
+        // A word that exactly names an existing type or size matches only that type/size,
+        // so "H 320" shows type H, size 320 — not brands containing "h" or sizes like 1320.
+        // Once a size is given, a later number is the piece length: "H 320 Royal 400" finds
+        // the 400 mm piece. A number that isn't a known size is also treated as a length.
+        // Serial numbers (e.g. "TB-0012") match exactly; other words match the start of a size or brand.
+        function getFilteredBelts() {
+            const terms = document.getElementById("searchBelt").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+            if (!terms.length) return timingBelts;
+
+            const lower = v => String(v).toLowerCase();
+            const knownTypes = new Set(timingBelts.map(b => lower(b.type)));
+            const knownSizes = new Set(timingBelts.map(b => lower(b.size)));
+
+            let sizeGiven = false;
+            const matchers = terms.map(t => {
+                const num = t.replace(/mm$/, "");
+                const isNumber = /^\d+$/.test(num);
+
+                if (/^tb-?\d+$/.test(t)) {
+                    const serialNo = parseInt(t.replace(/\D/g, ""), 10);
+                    return belt => parseInt(String(belt.serial || "").replace(/\D/g, ""), 10) === serialNo;
+                }
+                if (knownTypes.has(t)) return belt => lower(belt.type) === t;
+                if (isNumber && (sizeGiven || !knownSizes.has(num))) {
+                    return belt => belt.length === parseInt(num, 10);
+                }
+                if (knownSizes.has(t)) {
+                    sizeGiven = true;
+                    return belt => lower(belt.size) === t;
+                }
+                return belt => lower(belt.size).startsWith(t) || lower(belt.brand).startsWith(t);
+            });
+
+            return timingBelts.filter(belt => matchers.every(match => match(belt)));
+        }
+
+        function buildDataTree(belts) {
+            const tree = {};
+            belts.forEach(belt => {
+                if (!tree[belt.type]) tree[belt.type] = {};
+                if (!tree[belt.type][belt.size]) tree[belt.type][belt.size] = {};
+                if (!tree[belt.type][belt.size][belt.brand]) tree[belt.type][belt.size][belt.brand] = [];
+
+                tree[belt.type][belt.size][belt.brand].push(belt);
+            });
+            return tree;
+        }
+
+        function renderTimingBelts() {
+            const container = document.getElementById("timingBeltApp");
+            const totalStockBadge = document.getElementById("totalStockBadge");
+            
+            totalStockBadge.innerText = `${timingBelts.length} total piece${timingBelts.length === 1 ? '' : 's'}`;
+
+            if (timingBelts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No Timing Belts in Stock</h4>
+                        <p>Add your timing belt stock using the form above to view by Type, Size, and Brand tabs.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const filteredBelts = getFilteredBelts();
+            if (filteredBelts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No Matching Timing Belts</h4>
+                        <p>No belts match your search. Try a different type, size, brand or length.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tree = buildDataTree(filteredBelts);
+            const types = Object.keys(tree).sort();
+
+            // Ensure selectedType is valid
+            if (!selectedType || !tree[selectedType]) {
+                selectedType = types[0];
+            }
+
+            // Ensure selectedSize is valid
+            const sizes = Object.keys(tree[selectedType] || {}).sort();
+            if (!selectedSize || !tree[selectedType]?.[selectedSize]) {
+                selectedSize = sizes[0] || null;
+            }
+
+            // Ensure selectedBrand is valid
+            const brands = selectedSize ? Object.keys(tree[selectedType]?.[selectedSize] || {}).sort() : [];
+            if (!selectedBrand || !tree[selectedType]?.[selectedSize]?.[selectedBrand]) {
+                selectedBrand = brands[0] || null;
+            }
+
+            // Construct Nested Tabs HTML
+            let html = `<div class="tabs-wrapper">`;
+
+            // LAYER 1: TYPE TABS (Image 2 style)
+            html += `
+                <div class="tab-layer">
+                    <div class="tab-layer-label">
+                        <span class="dot"></span> 1. Select Belt Type
+                    </div>
+                    <div class="type-tabs-scroll">
+            `;
+            types.forEach(t => {
+                const isActive = t === selectedType;
+                // Count total pieces for this type
+                let count = 0;
+                Object.values(tree[t]).forEach(sizesObj => {
+                    Object.values(sizesObj).forEach(pieces => {
+                        count += pieces.length;
+                    });
+                });
+
+                html += `
+                    <button class="type-tab-btn ${isActive ? 'active' : ''}" onclick="selectType('${t}')">
+                        <span>${t}</span>
+                        <span class="badge">${count}</span>
+                    </button>
+                `;
+            });
+            html += `</div></div>`;
+
+            // LAYER 2: SIZE TABS (Secondary level)
+            if (sizes.length > 0) {
+                html += `
+                    <div class="tab-layer">
+                        <div class="tab-layer-label">
+                            <span class="dot" style="background: #1e293b;"></span> 2. Select Size for Type: <b>${selectedType}</b>
+                        </div>
+                        <div class="size-tabs-bar">
+                `;
+                sizes.forEach(s => {
+                    const isActive = s === selectedSize;
+                    let sizeCount = 0;
+                    Object.values(tree[selectedType][s]).forEach(pieces => {
+                        sizeCount += pieces.length;
+                    });
+
+                    html += `
+                        <button class="size-tab-btn ${isActive ? 'active' : ''}" onclick="selectSize('${s}')">
+                            <span>${s}</span>
+                            <span class="size-count">(${sizeCount})</span>
+                        </button>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            // LAYER 3: BRAND TABS (Third level)
+            if (brands.length > 0) {
+                html += `
+                    <div class="tab-layer">
+                        <div class="tab-layer-label">
+                            <span class="dot" style="background: #0284c7;"></span> 3. Select Brand for Size: <b>${selectedSize}</b>
+                        </div>
+                        <div class="brand-tabs-bar">
+                `;
+                brands.forEach(b => {
+                    const isActive = b === selectedBrand;
+                    const brandPieces = tree[selectedType][selectedSize][b] || [];
+
+                    html += `
+                        <button class="brand-tab-btn ${isActive ? 'active' : ''}" onclick="selectBrand('${b}')">
+                            <span>🏷️ ${b}</span>
+                            <span class="brand-count">${brandPieces.length}</span>
+                        </button>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            // BREADCRUMB / SUMMARY BAR
+            const pieces = (selectedType && selectedSize && selectedBrand)
+                ? (tree[selectedType]?.[selectedSize]?.[selectedBrand] || [])
+                : [];
+
+            const totalMm = pieces.reduce((acc, p) => acc + p.length, 0);
+
+            html += `
+                <div class="active-selection-bar">
+                    <div class="breadcrumb-text">
+                        <span>Type: <b>${selectedType || '-'}</b></span>
+                        <span class="sep">/</span>
+                        <span>Size: <b>${selectedSize || '-'}</b></span>
+                        <span class="sep">/</span>
+                        <span>Brand: <b>${selectedBrand || '-'}</b></span>
+                    </div>
+                    <div class="selection-stats">
+                        <span><b>${pieces.length}</b> piece${pieces.length === 1 ? '' : 's'} available</span>
+                        <span>Total: <b>${totalMm} mm</b></span>
+                    </div>
+                </div>
+            `;
+
+            // BELT PIECES LISTING (CUT / DELETE UI)
+            html += `<div class="belt-pieces-container">`;
+
+            if (pieces.length === 0) {
+                html += `
+                    <div class="empty-state">
+                        <p>No pieces currently in stock for this combination.</p>
+                    </div>
+                `;
+            } else {
+                // Sort pieces: largest remaining length first
+                const sortedPieces = [...pieces].sort((a, b) => b.length - a.length);
+
+                sortedPieces.forEach(belt => {
+                    const isCut = belt.length < belt.originalLength;
+                    html += `
+                        <div class="belt-piece-card">
+                            <div class="belt-info">
+                                <div class="serial-badge">${belt.serial || '-'}</div>
+                                <div class="length-badge">${belt.length} mm</div>
+                                <div class="orig-length-badge">Original: ${belt.originalLength} mm</div>
+                                <div class="cut-status-badge ${isCut ? 'cut' : 'full'}">
+                                    ${isCut ? '✂️ Cut Piece' : '✓ Full Roll'}
+                                </div>
+                                <div class="belt-timestamps">
+                                    <div>Created: ${belt.createdAt || '-'}</div>
+                                    <div>Updated: ${belt.updatedAt || belt.createdAt || '-'}</div>
+                                </div>
+                            </div>
+                            <div class="piece-actions">
+                                <button class="cut-btn" onclick="openCutModal(${belt.id})">✂️ Cut</button>
+                                <button class="delete-btn" onclick="deleteBelt(${belt.id})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `</div>`; // end pieces container
+            html += `</div>`; // end tabs-wrapper
+
+            container.innerHTML = html;
+        }
+
+        // Tab selection event handlers
+        function selectType(type) {
+            selectedType = type;
+            selectedSize = null;
+            selectedBrand = null;
+            renderTimingBelts();
+        }
+
+        function selectSize(size) {
+            selectedSize = size;
+            selectedBrand = null;
+            renderTimingBelts();
+        }
+
+        function selectBrand(brand) {
+            selectedBrand = brand;
+            renderTimingBelts();
+        }
+
+        // Modal Cutting Handlers
+        function openCutModal(id) {
+            const belt = timingBelts.find(b => b.id === id);
+            if (!belt) return;
+
+            activeBeltIdToCut = id;
+            const modal = document.getElementById("cutModal");
+            const details = document.getElementById("cutModalDetails");
+            const input = document.getElementById("modalCutLength");
+            const preview = document.getElementById("cutCalculationPreview");
+
+            details.innerHTML = `
+                <div>Belt: <b>${belt.serial || ''} — ${belt.type} • ${belt.size} • ${belt.brand}</b></div>
+                <div style="margin-top: 4px;">Current Length: <b>${belt.length} mm</b> (Original: ${belt.originalLength} mm)</div>
+            `;
+
+            input.value = "";
+            input.max = belt.length - 1;
+            preview.innerText = `Enter cut length less than ${belt.length} mm`;
+
+            input.oninput = () => {
+                const cutVal = parseInt(input.value);
+                if (isNaN(cutVal) || cutVal <= 0) {
+                    preview.innerText = `Enter mm to cut`;
+                    preview.style.color = "#64748b";
+                } else if (cutVal >= belt.length) {
+                    preview.innerText = `⚠️ Cut length cannot be equal or greater than current length (${belt.length} mm)`;
+                    preview.style.color = "#dc2626";
+                } else {
+                    const remaining = belt.length - cutVal;
+                    preview.innerText = `Remaining after cut: ${remaining} mm`;
+                    preview.style.color = "#15803d";
+                }
+            };
+
+            modal.classList.add("open");
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closeCutModal() {
+            const modal = document.getElementById("cutModal");
+            modal.classList.remove("open");
+            activeBeltIdToCut = null;
+        }
+
+        // Mobile Sidebar Drawer Toggle
+        function toggleSidebar(forceState) {
+            const sidebar = document.getElementById("sidebar");
+            const backdrop = document.getElementById("sidebarBackdrop");
+            if (!sidebar || !backdrop) return;
+
+            const isOpen = typeof forceState === "boolean" ? forceState : !sidebar.classList.contains("open");
+            if (isOpen) {
+                sidebar.classList.add("open");
+                backdrop.classList.add("active");
+                document.body.style.overflow = "hidden";
+            } else {
+                sidebar.classList.remove("open");
+                backdrop.classList.remove("active");
+                document.body.style.overflow = "";
+            }
+        }
+
+        async function confirmCut() {
+            if (!activeBeltIdToCut) return;
+
+            const belt = timingBelts.find(b => b.id === activeBeltIdToCut);
+            if (!belt) return;
+
+            const input = document.getElementById("modalCutLength");
+            const cutLength = parseInt(input.value);
+
+            if (isNaN(cutLength) || cutLength <= 0) {
+                showToast("Please enter a valid cut length.", "warning");
+                return;
+            }
+
+            if (cutLength >= belt.length) {
+                showToast(`Cut length must be less than current length (${belt.length} mm).`, "warning");
+                return;
+            }
+
+            const before = belt.length;
+            belt.length = belt.length - cutLength;
+
+            const now = new Date().toLocaleString();
+            belt.updatedAt = now;
+
+            if (!belt.history) belt.history = [];
+            belt.history.unshift({
+                cut: cutLength,
+                before,
+                after: belt.length,
+                date: now
+            });
+
+            await saveTimingBelts();
+            closeCutModal();
+            renderTimingBelts();
+            showToast(`Cut applied successfully. Remaining: ${belt.length} mm`, "success");
+        }
+
+        async function deleteBelt(id) {
+            const belt = timingBelts.find(b => b.id === id);
+            if (!belt) return;
+
+            const ok = await showConfirm(`Are you sure you want to permanently delete ${belt.serial || 'this piece'} — ${belt.type} ${belt.size} (${belt.length}mm)?`, {
+                title: "Delete Belt Piece",
+                confirmText: "Delete",
+                isDanger: true
+            });
+            if (!ok) return;
+
+            timingBelts = timingBelts.filter(b => b.id !== id);
+            await saveTimingBelts();
+            renderTimingBelts();
+            showToast("Timing belt piece deleted", "info");
+        }
+
+        /* Keyboard shortcuts */
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                closeCutModal();
+                return;
+            }
+
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+
+            switch (e.key.toLowerCase()) {
+                case "d":
+                    location.href = "index.html";
+                    break;
+                case "i":
+                    location.href = "products.html";
+                    break;
+                case "a":
+                    location.href = "products.html#bulkAdd";
+                    break;
+                case "s":
+                    location.href = "products.html#bulkSub";
+                    break;
+            }
+        }, true);
+
+        // Initial Data Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await DB.init();
+                timingBelts = await DB.getAll("timingBelts") || [];
+                await migrateBelts();
+                renderTimingBelts();
+            } catch (e) {
+                console.error("Failed to initialize timing belts:", e);
+            }
+        });
+    </script>
+
+</body>
+
+</html>
