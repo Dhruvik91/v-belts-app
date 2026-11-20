@@ -110,6 +110,7 @@
 
         .bulk-table td:first-child { width: 70%; }
         .bulk-table input { height: 36px; }
+        .bulk-table .row-remove { width: 48px; padding-left: 0; text-align: center; }
 
         /* ===== PRODUCT DETAILS MODAL ===== */
         .details-summary {
@@ -187,6 +188,7 @@
                             <tr>
                                 <th>Product name</th>
                                 <th>Quantity</th>
+                                <th class="row-remove"></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -227,6 +229,7 @@
                             <tr>
                                 <th>Product name</th>
                                 <th>Quantity</th>
+                                <th class="row-remove"></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -531,6 +534,9 @@
         <td>
             <input type="number" class="qty-input" placeholder="Qty">
         </td>
+        <td class="row-remove">
+            <button type="button" class="icon-btn danger" title="Remove row" tabindex="-1" onclick="removeRow(this)">${icon('x')}</button>
+        </td>
     `;
 
             tbody.appendChild(tr);
@@ -554,6 +560,22 @@
                     tbody.lastElementChild.querySelector(".prod-input").focus();
                 }
             });
+        }
+
+        /* REMOVE ROW — the last remaining row is cleared instead of removed */
+        function removeRow(btn) {
+            const tr = btn.closest("tr");
+            const tbody = tr.parentElement;
+
+            if (tbody.rows.length <= 1) {
+                tr.querySelectorAll("input").forEach(i => i.value = "");
+                tr.querySelector(".prod-input").focus();
+                return;
+            }
+
+            const focusRow = tr.previousElementSibling || tr.nextElementSibling;
+            tr.remove();
+            focusRow.querySelector(".prod-input").focus();
         }
 
         let editProductId = null;
