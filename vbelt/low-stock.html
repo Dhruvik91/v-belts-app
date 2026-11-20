@@ -3,165 +3,59 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Low Stock Items</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <script src="db.js"></script>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: #f1f5f9
-        }
-
-        .sidebar {
-            width: 220px;
-            height: 100vh;
-            background: #0f172a;
-            color: white;
-            position: fixed;
-            padding: 20px
-        }
-
-        .sidebar h2 {
-            text-align: center
-        }
-
-        .sidebar button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            background: #1e293b;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer
-        }
-
-        .sidebar button:hover {
-            background: #334155
-        }
-
-        .main {
-            margin-left: 240px;
-            padding: 30px
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, .06)
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            font-size: 14px
-        }
-
-        th {
-            background: #fee2e2
-        }
-
-        .search-input {
-            width: 300px;
-            padding: 8px 10px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-            margin-bottom: 15px;
-            font-family: inherit
-        }
-
-        .low-row {
-            background: #fff1f2
-        }
-
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px
-        }
-
-        .card-header h3 {
-            margin: 0
-        }
-
-        .po-btn {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-            padding: 12px 18px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.25);
-            transition: 0.2s;
-        }
-
-        .po-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
-        }
-
-        .po-btn:active {
-            transform: scale(0.98);
-        }
-    </style>
 </head>
 
-<body>
+<body data-page="lowStock" data-title="Low stock">
 
-    <div class="sidebar">
-        <h2>Inventory</h2>
-        <button onclick="location.href='index.html'">Dashboard</button>
-        <button onclick="location.href='products.html'">Inventory</button>
-        <button onclick="location.href='products.html#bulkSub'">Bulk Subtract</button>
-        <button onclick="location.href='products.html#bulkAdd'">Bulk Add</button>
-        <button onclick="location.href='party.html'">Party List</button>
-        <button onclick="location.href='low-stock.html'">Low Stock Items</button>
-        <button onclick="location.href='timing-belt.html'">Timing Belt</button>
-    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+    <script src="shell.js"></script>
 
-    <div class="main">
+    <main class="main">
+    <div class="page">
 
-        <div class="card">
-            <div class="card-header">
-                <h3>Low Stock Items</h3>
-                <button class="po-btn" onclick="location.href='purchase-order.html'">
-                    📄 Generate Purchase Order
-                </button>
+        <div class="page-header">
+            <div>
+                <h1>Low stock</h1>
+                <p>Products at or below their minimum quantity.</p>
             </div>
-
-            <input type="text" id="searchLowStock" class="search-input" placeholder="Search by product or category...">
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>Qty</th>
-                        <th>Min Qty</th>
-                        <th>Low Since</th>
-                        <th>Days</th>
-                    </tr>
-                </thead>
-                <tbody id="lowStockList"></tbody>
-            </table>
-
+            <div class="page-actions">
+                <a class="btn btn-primary" href="purchase-order.html"><script>document.write(icon('file'))</script>Generate purchase order</a>
+            </div>
         </div>
 
+        <section class="card">
+            <div class="card-header">
+                <label class="search">
+                    <script>document.write(icon('search'))</script>
+                    <input type="text" id="searchLowStock" placeholder="Search by product or category">
+                </label>
+                <span class="badge badge-danger badge-mono" id="lowCountBadge">0 items</span>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th class="num">Qty</th>
+                            <th class="num">Min qty</th>
+                            <th class="num">Low since</th>
+                            <th class="num">Days</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lowStockList"></tbody>
+                </table>
+            </div>
+        </section>
+
     </div>
+    </main>
 
     <script>
         let products = [];
@@ -180,7 +74,8 @@
             const lowItems = products.filter(p => p.qty <= p.minQty);
 
             if (!lowItems.length) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">No Low Stock Items 🎉</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="empty">Everything is above its minimum quantity.</td></tr>`;
+                document.getElementById("lowCountBadge").textContent = "0 items";
                 return;
             }
 
@@ -192,6 +87,8 @@
                 }
             });
 
+            document.getElementById("lowCountBadge").textContent = `${lowItems.length} item${lowItems.length === 1 ? '' : 's'}`;
+
             const q = document.getElementById("searchLowStock").value.trim().toLowerCase();
             const visibleItems = lowItems.filter(p =>
                 p.name.toLowerCase().includes(q) ||
@@ -199,7 +96,7 @@
             );
 
             if (!visibleItems.length) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#64748b">No matching items found</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="empty">No matching items found</td></tr>`;
             }
 
             visibleItems.forEach(p => {
@@ -207,15 +104,13 @@
                 const days = daysBetween(p.lowStockDate);
 
                 const tr = document.createElement("tr");
-                tr.className = "low-row";
-
                 tr.innerHTML = `
-            <td>${p.name}</td>
-            <td>${p.category}</td>
-            <td>${p.qty}</td>
-            <td>${p.minQty}</td>
-            <td>${new Date(p.lowStockDate).toLocaleDateString()}</td>
-            <td>${days}</td>
+            <td><b>${p.name}</b></td>
+            <td class="muted">${p.category}</td>
+            <td class="num"><span class="qty-out">${p.qty}</span></td>
+            <td class="num">${p.minQty}</td>
+            <td class="num muted">${new Date(p.lowStockDate).toLocaleDateString()}</td>
+            <td class="num"><span class="badge badge-mono ${days >= 7 ? 'badge-danger' : 'badge-warning'}">${days}d</span></td>
         `;
 
                 tbody.appendChild(tr);
@@ -235,19 +130,6 @@
         }
 
         document.getElementById("searchLowStock").addEventListener("input", debounce(renderLowStock));
-
-        /* Keyboard shortcuts */
-        document.addEventListener("keydown", function (e) {
-            if (!e.ctrlKey) return;
-            e.preventDefault();
-
-            switch (e.key.toLowerCase()) {
-                case "d": location.href = "index.html"; break;
-                case "i": location.href = "products.html"; break;
-                case "a": location.href = "products.html#bulkAdd"; break;
-                case "s": location.href = "products.html#bulkSub"; break;
-            }
-        }, true);
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {

@@ -3,167 +3,83 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Order</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <script src="db.js"></script>
 
     <style>
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: #f1f5f9
-        }
-
-        .sidebar {
-            width: 220px;
-            height: 100vh;
-            background: #0f172a;
-            color: white;
-            position: fixed;
-            padding: 20px
-        }
-
-        .sidebar h2 {
-            text-align: center
-        }
-
-        .sidebar button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            background: #1e293b;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13.33px
-        }
-
-        .sidebar button:hover {
-            background: #334155
-        }
-
-        .main {
-            margin-left: 240px;
-            padding: 30px
-        }
-
-        /* Print only the purchase order */
-        @media print {
-            .sidebar,
-            .action-bar {
-                display: none
-            }
-
-            .main {
-                margin-left: 0;
-                padding: 0
-            }
-
-            .card {
-                box-shadow: none
-            }
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, .06)
-        }
-
-        h2 {
-            text-align: center
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px
-        }
-
-        th {
-            background: #e0e7ff
-        }
-
-        .top-bar {
+        .po-doc { padding: 28px 32px; }
+        .po-head {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+            align-items: flex-start;
+            gap: 16px;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
         }
+        .company-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+        .po-title { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+        .po-info { text-align: right; }
+        .po-info .eyebrow { display: block; margin-bottom: 4px; }
+        .po-info .mono { font-size: 14px; }
 
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            background: #2563eb;
-            color: white;
-            font-size: 14px;
-        }
-
-        .print-btn {
-            background: #16a34a;
+        @media print {
+            body { background: #FFFFFF; }
+            .po-doc { padding: 0; }
+            .table-wrap { border-color: #D9D9D9; }
         }
     </style>
 </head>
 
-<body>
+<body data-page="purchaseOrder" data-title="Purchase order">
 
-    <div class="sidebar">
-        <h2>Inventory</h2>
-        <button onclick="location.href='index.html'">Dashboard</button>
-        <button onclick="location.href='products.html'">Inventory</button>
-        <button onclick="location.href='products.html#bulkSub'">Bulk Subtract</button>
-        <button onclick="location.href='products.html#bulkAdd'">Bulk Add</button>
-        <button onclick="location.href='party.html'">Party List</button>
-        <button onclick="location.href='low-stock.html'">Low Stock Items</button>
-        <button onclick="location.href='timing-belt.html'">Timing Belt</button>
-    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+    <script src="shell.js"></script>
 
-    <div class="main">
+    <main class="main">
+    <div class="page-narrow page">
 
-        <div class="card">
-            <div class="top-bar">
+        <div class="page-header no-print">
+            <div>
+                <h1>Purchase order</h1>
+                <p>Order quantities to bring every low-stock item back to its minimum.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="window.print()"><script>document.write(icon('printer'))</script>Print / Save PDF</button>
+            </div>
+        </div>
+
+        <section class="card po-doc">
+            <div class="po-head">
                 <div>
                     <div class="company-title">PATEL V BELT CORPORATION</div>
-                    <div class="po-info">
-                        Date: <span id="poDate"></span>
-                    </div>
+                    <div class="po-title">Purchase Order</div>
                 </div>
-
-                <div class="action-bar">
-                    <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+                <div class="po-info">
+                    <span class="eyebrow">Date</span>
+                    <span class="mono" id="poDate"></span>
                 </div>
             </div>
 
-
-            <h2>Purchase Order</h2>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Current Stock</th>
-                        <th>Order Qty</th>
-
-                    </tr>
-                </thead>
-                <tbody id="poList"></tbody>
-            </table>
-
-        </div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th class="num">Current stock</th>
+                            <th class="num">Order qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="poList"></tbody>
+                </table>
+            </div>
+        </section>
 
     </div>
+    </main>
 
     <script>
         let products = [];
@@ -186,7 +102,7 @@
             const lowItems = products.filter(p => p.qty <= p.minQty);
 
             if (!lowItems.length) {
-                tbody.innerHTML = `<tr><td colspan="5">No Low Stock Items</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="empty">No low stock items — nothing to order.</td></tr>`;
                 return;
             }
 
@@ -196,12 +112,9 @@
 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-            <tr>
             <td>${p.name}</td>
-            <td>${p.qty}</td>
-            <td><b>${orderQty}</b></td>
-            </tr>
-
+            <td class="num">${p.qty}</td>
+            <td class="num"><b>${orderQty}</b></td>
         `;
                 tbody.appendChild(tr);
             });

@@ -269,31 +269,24 @@ const DB = {
     }
 };
 
-// Automatically render active USB storage status badge in the sidebar on any page
+// Show the active USB data folder in the sidebar's "More" section on every page
 window.addEventListener('DOMContentLoaded', async () => {
-    if (DB.isElectron) {
-        try {
-            const info = await DB.getDataInfo();
-            const sidebar = document.querySelector('.sidebar');
-            if (sidebar && info && !document.getElementById('storageInfoBadge')) {
-                const badge = document.createElement('div');
-                badge.id = 'storageInfoBadge';
-                badge.style.cssText = 'margin-top: 24px; padding: 12px; background: #1e293b; border-radius: 8px; font-size: 11px; color: #94a3b8; border: 1px solid #334155;';
-                badge.innerHTML = `
-                    <div style="font-weight: 600; color: #38bdf8; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                        <span>💾 USB Storage</span>
-                    </div>
-                    <div style="word-break: break-all; margin-bottom: 8px; color: #cbd5e1; font-family: monospace; font-size: 10px;" title="${info.dataDir}">${info.dataDir}</div>
-                    <button id="btnOpenDataFolder" style="padding: 6px 10px; font-size: 11px; background: #38bdf8; color: #0f172a; font-weight: 600; border: none; border-radius: 4px; width: 100%; cursor: pointer;">📂 Open Data Folder</button>
-                `;
-                sidebar.appendChild(badge);
-                badge.querySelector('#btnOpenDataFolder').addEventListener('click', () => {
-                    DB.openDataFolder();
-                });
-            }
-        } catch (e) {
-            console.error("Storage badge initialization error:", e);
-        }
+    if (!DB.isElectron) return;
+    try {
+        const info = await DB.getDataInfo();
+        const slot = document.getElementById('sbStorage');
+        if (!slot || !info || slot.dataset.ready) return;
+        slot.dataset.ready = '1';
+        const folderIcon = window.icon ? window.icon('folder') : '';
+        slot.innerHTML = `
+            <button class="sb-link" type="button" id="btnOpenDataFolder" title="Open data folder">${folderIcon}<span>USB data folder</span></button>
+            <div class="sb-storage-path"></div>
+        `;
+        slot.querySelector('.sb-storage-path').textContent = info.dataDir;
+        slot.querySelector('.sb-storage-path').title = info.dataDir;
+        slot.querySelector('#btnOpenDataFolder').addEventListener('click', () => DB.openDataFolder());
+    } catch (e) {
+        console.error("Storage info initialization error:", e);
     }
 });
 
@@ -302,6 +295,15 @@ window.addEventListener('DOMContentLoaded', async () => {
    ========================================================================== */
 
 (function () {
+    const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const UI_ICON = {
+        check: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
+        x: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
+        alert: svg('<path d="M12 4.5 20.5 19h-17z"/><path d="M12 10v4"/><circle cx="12" cy="16.6" r=".6" fill="currentColor"/>'),
+        info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".6" fill="currentColor"/>'),
+        trash: svg('<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.5h9.4L17.5 7"/>')
+    };
+
     function injectUIStyles() {
         if (document.getElementById("ui-system-styles")) return;
         const style = document.createElement("style");
@@ -309,171 +311,133 @@ window.addEventListener('DOMContentLoaded', async () => {
         style.textContent = `
             #uiToastContainer {
                 position: fixed;
-                top: 24px;
-                right: 24px;
+                top: 16px;
+                right: 20px;
                 z-index: 100000;
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
+                gap: 8px;
                 pointer-events: none;
             }
             .ui-toast {
                 pointer-events: auto;
                 min-width: 280px;
                 max-width: 440px;
-                background: #ffffff;
-                color: #0f172a;
+                background: #FFFFFF;
+                color: #0A0A0A;
                 border-radius: 12px;
-                padding: 12px 16px;
-                box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                border: 1px solid #e2e8f0;
+                padding: 10px 10px 10px 12px;
+                box-shadow: 0 0 0 1px rgba(10,10,10,0.05), 0 12px 32px rgba(10,10,10,0.12);
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 10px;
                 font-size: 14px;
                 font-family: 'Inter', system-ui, sans-serif;
-                animation: uiSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                transition: opacity 0.2s ease, transform 0.2s ease;
+                animation: uiSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            .ui-toast.ui-hiding {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
+            .ui-toast.ui-hiding { opacity: 0; transform: translateY(-6px); }
             .ui-toast-icon {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
+                width: 26px;
+                height: 26px;
+                border-radius: 999px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 flex-shrink: 0;
-                font-size: 14px;
-                font-weight: 700;
+                border: 1px solid transparent;
             }
-            .ui-toast-msg {
-                flex: 1;
-                line-height: 1.4;
-                word-break: break-word;
-            }
+            .ui-toast-icon svg { width: 15px; height: 15px; }
+            .ui-toast-msg { flex: 1; line-height: 1.4; word-break: break-word; }
             .ui-toast-close {
                 background: transparent;
                 border: none;
                 cursor: pointer;
-                color: #94a3b8;
-                font-size: 18px;
-                line-height: 1;
-                padding: 2px 6px;
-                border-radius: 4px;
+                color: #9CA3AF;
+                width: 26px;
+                height: 26px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                flex-shrink: 0;
             }
-            .ui-toast-close:hover {
-                color: #334155;
-                background: #f1f5f9;
-            }
-            .ui-toast-success { border-left: 5px solid #10b981; }
-            .ui-toast-success .ui-toast-icon { background: #dcfce7; color: #15803d; }
-            .ui-toast-error { border-left: 5px solid #ef4444; }
-            .ui-toast-error .ui-toast-icon { background: #fee2e2; color: #b91c1c; }
-            .ui-toast-warning { border-left: 5px solid #f59e0b; }
-            .ui-toast-warning .ui-toast-icon { background: #fef3c7; color: #b45309; }
-            .ui-toast-info { border-left: 5px solid #2563eb; }
-            .ui-toast-info .ui-toast-icon { background: #dbeafe; color: #1d4ed8; }
+            .ui-toast-close svg { width: 15px; height: 15px; }
+            .ui-toast-close:hover { color: #0A0A0A; background: #F3F4F6; }
+            .ui-toast-success .ui-toast-icon { background: #DCFCE7; color: #15803D; border-color: #BBF7D0; }
+            .ui-toast-error   .ui-toast-icon { background: #FEE2E2; color: #B91C1C; border-color: #FECACA; }
+            .ui-toast-warning .ui-toast-icon { background: #FEF3C7; color: #D97706; border-color: #FDE68A; }
+            .ui-toast-info    .ui-toast-icon { background: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
 
             @keyframes uiSlideIn {
-                from { opacity: 0; transform: translateX(20px); }
-                to { opacity: 1; transform: translateX(0); }
+                from { opacity: 0; transform: translateY(-8px); }
+                to { opacity: 1; transform: translateY(0); }
             }
 
             #uiConfirmModal {
                 position: fixed;
                 inset: 0;
-                background: rgba(15, 23, 42, 0.6);
-                backdrop-filter: blur(3px);
+                background: rgba(10, 10, 10, 0.32);
                 z-index: 99999;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 opacity: 0;
                 pointer-events: none;
-                transition: opacity 0.2s ease;
+                transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
                 font-family: 'Inter', system-ui, sans-serif;
             }
-            #uiConfirmModal.open {
-                opacity: 1;
-                pointer-events: auto;
-            }
+            #uiConfirmModal.open { opacity: 1; pointer-events: auto; }
             .ui-confirm-box {
-                background: white;
-                border-radius: 14px;
+                background: #FFFFFF;
+                border-radius: 16px;
                 width: 90%;
-                max-width: 440px;
-                padding: 24px;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                transform: scale(0.95);
-                transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                max-width: 420px;
+                padding: 22px 24px;
+                box-shadow: 0 0 0 1px rgba(10,10,10,0.05), 0 12px 32px rgba(10,10,10,0.12);
+                transform: translateY(8px) scale(0.98);
+                transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            #uiConfirmModal.open .ui-confirm-box {
-                transform: scale(1);
-            }
-            .ui-confirm-head {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 12px;
-            }
+            #uiConfirmModal.open .ui-confirm-box { transform: translateY(0) scale(1); }
+            .ui-confirm-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
             .ui-confirm-badge {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
+                width: 36px;
+                height: 36px;
+                border-radius: 999px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 20px;
                 flex-shrink: 0;
+                border: 1px solid transparent;
             }
-            .ui-confirm-badge.danger { background: #fee2e2; color: #dc2626; }
-            .ui-confirm-badge.primary { background: #dbeafe; color: #2563eb; }
-            .ui-confirm-title {
-                margin: 0;
-                font-size: 18px;
-                font-weight: 700;
-                color: #0f172a;
-            }
+            .ui-confirm-badge svg { width: 18px; height: 18px; }
+            .ui-confirm-badge.danger { background: #FEE2E2; color: #B91C1C; border-color: #FECACA; }
+            .ui-confirm-badge.primary { background: #F4F4F4; color: #0A0A0A; border-color: #EAEAEA; }
+            .ui-confirm-title { margin: 0; font-size: 17px; font-weight: 600; color: #0A0A0A; letter-spacing: -0.01em; }
             .ui-confirm-msg {
                 font-size: 14px;
-                color: #475569;
+                color: #4B5563;
                 line-height: 1.5;
                 margin-bottom: 22px;
-                padding-left: 52px;
+                padding-left: 48px;
             }
-            .ui-confirm-btns {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
+            .ui-confirm-btns { display: flex; justify-content: flex-end; gap: 8px; }
             .ui-btn {
-                padding: 10px 18px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
+                height: 38px;
+                padding: 0 16px;
+                border-radius: 10px;
+                font: 500 14px/1 'Inter', system-ui, sans-serif;
                 cursor: pointer;
-                border: none;
-                transition: all 0.15s ease;
+                border: 1px solid transparent;
+                transition: background 0.15s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            .ui-btn-cancel {
-                background: #f1f5f9;
-                color: #334155;
-            }
-            .ui-btn-cancel:hover { background: #e2e8f0; }
-            .ui-btn-confirm {
-                background: #2563eb;
-                color: white;
-            }
-            .ui-btn-confirm:hover { background: #1d4ed8; }
-            .ui-btn-danger {
-                background: #ef4444;
-                color: white;
-            }
-            .ui-btn-danger:hover { background: #dc2626; }
+            .ui-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(10,10,10,0.06); }
+            .ui-btn-cancel { background: #FFFFFF; color: #0A0A0A; border-color: #D9D9D9; }
+            .ui-btn-cancel:hover { background: #F3F4F6; }
+            .ui-btn-confirm { background: #0A0A0A; color: #FFFFFF; }
+            .ui-btn-confirm:hover { background: #262626; }
+            .ui-btn-danger { background: #B91C1C; color: #FFFFFF; }
+            .ui-btn-danger:hover { background: #991B1B; }
         `;
         document.head.appendChild(style);
     }
@@ -500,16 +464,16 @@ window.addEventListener('DOMContentLoaded', async () => {
         toast.className = `ui-toast ui-toast-${type}`;
 
         const icons = {
-            success: "✓",
-            error: "✕",
-            warning: "⚠️",
-            info: "ℹ️"
+            success: UI_ICON.check,
+            error: UI_ICON.x,
+            warning: UI_ICON.alert,
+            info: UI_ICON.info
         };
 
         toast.innerHTML = `
-            <div class="ui-toast-icon">${icons[type] || "ℹ️"}</div>
+            <div class="ui-toast-icon">${icons[type] || UI_ICON.info}</div>
             <div class="ui-toast-msg">${message}</div>
-            <button class="ui-toast-close" title="Close">&times;</button>
+            <button class="ui-toast-close" title="Close">${UI_ICON.x}</button>
         `;
 
         const closeBtn = toast.querySelector(".ui-toast-close");
@@ -545,7 +509,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 modal.innerHTML = `
                     <div class="ui-confirm-box">
                         <div class="ui-confirm-head">
-                            <div class="ui-confirm-badge" id="uiConfirmBadge">⚠️</div>
+                            <div class="ui-confirm-badge" id="uiConfirmBadge"></div>
                             <h3 class="ui-confirm-title" id="uiConfirmTitle">Confirm Action</h3>
                         </div>
                         <div class="ui-confirm-msg" id="uiConfirmMsg"></div>
@@ -576,11 +540,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
             if (isDanger) {
                 badgeEl.className = "ui-confirm-badge danger";
-                badgeEl.textContent = "🗑️";
+                badgeEl.innerHTML = UI_ICON.trash;
                 okBtn.className = "ui-btn ui-btn-danger";
             } else {
                 badgeEl.className = "ui-confirm-badge primary";
-                badgeEl.textContent = "ℹ️";
+                badgeEl.innerHTML = UI_ICON.info;
                 okBtn.className = "ui-btn ui-btn-confirm";
             }
 
