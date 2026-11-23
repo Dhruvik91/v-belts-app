@@ -1,6 +1,6 @@
 {
   "name": "vbelt-inventory-app",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Portable V-Belt & Timing Belt Inventory Management",
   "main": "main.js",
   "scripts": {

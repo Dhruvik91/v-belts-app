@@ -7,6 +7,10 @@
     <title>Party List</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="theme.css">
+    <script src="vendor/jspdf.umd.min.js"></script>
+    <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="export.js"></script>
     <script src="db.js"></script>
 </head>
 
@@ -24,6 +28,8 @@
                 <p>Suppliers and customers used for bulk stock movements.</p>
             </div>
             <div class="page-actions">
+                <button class="btn btn-secondary" onclick="exportParties('excel')" title="Download as Excel"><script>document.write(icon('sheet'))</script>Excel</button>
+                <button class="btn btn-secondary" onclick="exportParties('pdf')" title="Download as PDF"><script>document.write(icon('download'))</script>PDF</button>
                 <a class="btn btn-primary" href="index.html#addParty"><script>document.write(icon('plus'))</script>Add party</a>
             </div>
         </div>
@@ -90,6 +96,32 @@
     <script>
         let parties = [];
         let editIndex = null;
+
+        /* EXPORT (Excel / PDF) — exports what the current search shows */
+        function exportParties(kind) {
+            const q = document.getElementById("search").value.trim().toLowerCase();
+            const list = parties
+                .filter(p =>
+                    p.code.toLowerCase().includes(q) ||
+                    p.name.toLowerCase().includes(q) ||
+                    (p.notes || "").toLowerCase().includes(q)
+                )
+                .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+
+            const columns = [
+                { header: "Code", type: "text", width: 10 },
+                { header: "Name", type: "text" },
+                { header: "Notes / Discount", type: "text" }
+            ];
+            const rows = list.map(p => [p.code, p.name, p.notes || ""]);
+            const subtitle = `${rows.length} part${rows.length === 1 ? "y" : "ies"}` + (q ? ` · filtered by "${q}"` : "");
+
+            if (kind === "excel") {
+                Exporter.excel({ sheetName: "Parties", columns, rows, filename: "party-list" });
+            } else {
+                Exporter.pdf({ title: "Party List", subtitle, columns, rows, filename: "party-list" });
+            }
+        }
 
         function renderPartyList() {
             const q = document.getElementById("search").value.trim().toLowerCase();
