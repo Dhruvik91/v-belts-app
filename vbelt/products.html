@@ -7,6 +7,10 @@
     <title>Inventory</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="theme.css">
+    <script src="vendor/jspdf.umd.min.js"></script>
+    <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="export.js"></script>
     <script src="db.js"></script>
 
     <style>
@@ -154,6 +158,8 @@
                         <script>document.write(icon('search'))</script>
                         <input type="text" id="searchProduct" placeholder="Search products">
                     </label>
+                    <button class="btn btn-secondary" onclick="exportInventory('excel')" title="Download as Excel"><script>document.write(icon('sheet'))</script>Excel</button>
+                    <button class="btn btn-secondary" onclick="exportInventory('pdf')" title="Download as PDF"><script>document.write(icon('download'))</script>PDF</button>
                     <a class="btn btn-primary" href="index.html#addProduct"><script>document.write(icon('plus'))</script>Add product</a>
                 </div>
             </div>
@@ -461,6 +467,40 @@
             activeProductId = id;
         }
 
+
+        /* EXPORT (Excel / PDF) — exports what the current search shows */
+        function exportInventory(kind) {
+            const search = document.getElementById("searchProduct").value.trim().toLowerCase();
+            const list = products
+                .filter(p => p.name.toLowerCase().includes(search))
+                .sort((a, b) => (a.category || "").localeCompare(b.category || "") || a.name.localeCompare(b.name));
+
+            const columns = [
+                { header: "Category", type: "text" },
+                { header: "Product", type: "text" },
+                { header: "Qty", type: "number" },
+                { header: "Min Qty", type: "number" },
+                { header: "Status", type: "text" },
+                { header: "Last Updated", type: "text" }
+            ];
+
+            const rows = list.map(p => {
+                const isLow = p.qty <= p.minQty;
+                const row = [p.category, p.name, p.qty, p.minQty, isLow ? "Low stock" : "OK", p.lastUpdated || ""];
+                row.__highlight = isLow;
+                return row;
+            });
+
+            const lowCount = rows.filter(r => r.__highlight).length;
+            const subtitle = `${rows.length} product${rows.length === 1 ? "" : "s"} · ${lowCount} low stock` +
+                (search ? ` · filtered by "${search}"` : "");
+
+            if (kind === "excel") {
+                Exporter.excel({ sheetName: "Inventory", columns, rows, filename: "inventory" });
+            } else {
+                Exporter.pdf({ title: "Inventory Report", subtitle, columns, rows, filename: "inventory" });
+            }
+        }
 
         /* DELETE PRODUCT */
         async function deleteProduct(id) {

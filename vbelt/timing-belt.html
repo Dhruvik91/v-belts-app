@@ -7,10 +7,15 @@
     <title>Timing Belt Inventory</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="theme.css">
+    <script src="vendor/jspdf.umd.min.js"></script>
+    <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="export.js"></script>
     <script src="db.js"></script>
 
     <style>
         .add-belt .btn { margin-top: 18px; }
+        .card-tools { display: flex; align-items: center; gap: 8px; }
 
         .belt-search { margin-bottom: 18px; }
 
@@ -129,7 +134,11 @@
         <section class="card">
             <div class="card-header">
                 <div class="card-title">Stock</div>
-                <span class="badge badge-mono" id="totalStockBadge"></span>
+                <div class="card-tools">
+                    <span class="badge badge-mono" id="totalStockBadge"></span>
+                    <button class="btn btn-secondary btn-sm" onclick="exportBelts('excel')" title="Download as Excel"><script>document.write(icon('sheet'))</script>Excel</button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportBelts('pdf')" title="Download as PDF"><script>document.write(icon('download'))</script>PDF</button>
+                </div>
             </div>
 
             <label class="search wide belt-search">
@@ -512,6 +521,45 @@
         }
 
         // Tab selection event handlers
+        /* EXPORT (Excel / PDF) — exports what the current search shows */
+        function exportBelts(kind) {
+            const list = [...getFilteredBelts()].sort((a, b) =>
+                String(a.type).localeCompare(String(b.type)) ||
+                String(a.size).localeCompare(String(b.size), undefined, { numeric: true }) ||
+                String(a.brand).localeCompare(String(b.brand)) ||
+                b.length - a.length
+            );
+
+            const columns = [
+                { header: "Serial", type: "text" },
+                { header: "Type", type: "text" },
+                { header: "Size", type: "text" },
+                { header: "Brand", type: "text" },
+                { header: "Length (mm)", type: "number" },
+                { header: "Original (mm)", type: "number" },
+                { header: "Status", type: "text" },
+                { header: "Created", type: "text" },
+                { header: "Updated", type: "text" }
+            ];
+
+            const rows = list.map(b => [
+                b.serial || "", b.type, b.size, b.brand, b.length, b.originalLength,
+                b.length < b.originalLength ? "Cut piece" : "Full roll",
+                b.createdAt || "", b.updatedAt || b.createdAt || ""
+            ]);
+
+            const totalMm = list.reduce((sum, b) => sum + (Number(b.length) || 0), 0);
+            const search = document.getElementById("searchBelt").value.trim();
+            const subtitle = `${rows.length} piece${rows.length === 1 ? "" : "s"} · ${totalMm} mm total` +
+                (search ? ` · filtered by "${search}"` : "");
+
+            if (kind === "excel") {
+                Exporter.excel({ sheetName: "Timing Belts", columns, rows, filename: "timing-belts" });
+            } else {
+                Exporter.pdf({ title: "Timing Belt Stock", subtitle, columns, rows, filename: "timing-belts", landscape: true });
+            }
+        }
+
         function selectType(type) {
             selectedType = type;
             selectedSize = null;

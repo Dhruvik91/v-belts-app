@@ -10,7 +10,7 @@ When the app runs from a USB drive, it creates a folder called `vbelt_data` righ
 
 ```text
 USB Drive (e.g. E:\ or /media/usb/)
-├── VBelt-Inventory 1.2.0.exe
+├── VBelt-Inventory 1.3.0.exe
 └── vbelt_data/
     ├── products.json        <-- All your products & stock
     ├── parties.json         <-- Party / customer list
@@ -29,14 +29,14 @@ Because all files are saved in `vbelt_data/` on the USB drive:
 ## 🚀 How to Put it on Your USB Drive
 
 ### For Windows:
-1. Copy `dist/VBelt-Inventory 1.2.0.exe` onto your USB drive.
-2. Double-click `VBelt-Inventory 1.2.0.exe` to run.
+1. Copy `dist/VBelt-Inventory 1.3.0.exe` onto your USB drive.
+2. Double-click `VBelt-Inventory 1.3.0.exe` to run.
 3. Done! The app will automatically create and use `vbelt_data/` on the USB drive.
 
 *(Alternatively, you can copy the entire `dist/win-unpacked` folder onto your USB drive and run `VBelt-Inventory.exe`).*
 
 ### For Linux:
-1. Copy `dist/VBelt-Inventory-1.2.0.AppImage` onto your USB drive.
+1. Copy `dist/VBelt-Inventory-1.3.0.AppImage` onto your USB drive.
 2. Right-click -> Properties -> Permissions -> **Allow executing file as program** (or `chmod +x`).
 3. Run the AppImage.
 
@@ -48,7 +48,7 @@ Your data lives in `vbelt_data/`, separate from the app, so updating never touch
 
 1. Close the app if it is running.
 2. Delete the old file on the USB drive (e.g. `VBelt-Inventory 1.0.0.exe` or `VBelt-Inventory-1.0.0.AppImage`). **Do not delete `vbelt_data/`.**
-3. Copy the new file from `dist/` (e.g. `VBelt-Inventory 1.2.0.exe`) into the same folder on the USB drive, next to `vbelt_data/`.
+3. Copy the new file from `dist/` (e.g. `VBelt-Inventory 1.3.0.exe`) into the same folder on the USB drive, next to `vbelt_data/`.
 4. Run the new file. All your products, parties and timing belts will be there.
 
 > Tip: copy the `vbelt_data/` folder somewhere safe before updating, as a backup.
