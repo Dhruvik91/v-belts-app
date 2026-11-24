@@ -523,40 +523,45 @@
         // Tab selection event handlers
         /* EXPORT (Excel / PDF) — exports what the current search shows */
         function exportBelts(kind) {
-            const list = [...getFilteredBelts()].sort((a, b) =>
+            // One row per Type + Size + Brand; every piece's length is listed in that row,
+            // largest first, with repeats collapsed (e.g. "500 ×3, 400, 350").
+            const groups = new Map();
+            getFilteredBelts().forEach(b => {
+                const key = [b.type, b.size, b.brand].map(v => String(v).trim().toLowerCase()).join("|");
+                if (!groups.has(key)) groups.set(key, { type: b.type, size: b.size, brand: b.brand, lengths: [] });
+                groups.get(key).lengths.push(Number(b.length) || 0);
+            });
+
+            const list = [...groups.values()].sort((a, b) =>
                 String(a.type).localeCompare(String(b.type)) ||
                 String(a.size).localeCompare(String(b.size), undefined, { numeric: true }) ||
-                String(a.brand).localeCompare(String(b.brand)) ||
-                b.length - a.length
+                String(a.brand).localeCompare(String(b.brand))
             );
 
+            const formatLengths = lengths => {
+                const counts = new Map();
+                [...lengths].sort((x, y) => y - x).forEach(l => counts.set(l, (counts.get(l) || 0) + 1));
+                return [...counts].map(([l, n]) => n > 1 ? `${l} ×${n}` : `${l}`).join(", ");
+            };
+
             const columns = [
-                { header: "Serial", type: "text" },
-                { header: "Type", type: "text" },
-                { header: "Size", type: "text" },
-                { header: "Brand", type: "text" },
-                { header: "Length (mm)", type: "number" },
-                { header: "Original (mm)", type: "number" },
-                { header: "Status", type: "text" },
-                { header: "Created", type: "text" },
-                { header: "Updated", type: "text" }
+                { header: "TYPE", type: "text", width: 12 },
+                { header: "SIZE", type: "text", width: 12 },
+                { header: "BRAND", type: "text", width: 20 },
+                { header: "LENGTH (MM)", type: "text", width: 36 }
             ];
 
-            const rows = list.map(b => [
-                b.serial || "", b.type, b.size, b.brand, b.length, b.originalLength,
-                b.length < b.originalLength ? "Cut piece" : "Full roll",
-                b.createdAt || "", b.updatedAt || b.createdAt || ""
-            ]);
+            const rows = list.map(g => [g.type, g.size, g.brand, formatLengths(g.lengths)]);
 
-            const totalMm = list.reduce((sum, b) => sum + (Number(b.length) || 0), 0);
+            const pieces = list.reduce((sum, g) => sum + g.lengths.length, 0);
             const search = document.getElementById("searchBelt").value.trim();
-            const subtitle = `${rows.length} piece${rows.length === 1 ? "" : "s"} · ${totalMm} mm total` +
+            const subtitle = `${pieces} piece${pieces === 1 ? "" : "s"}` +
                 (search ? ` · filtered by "${search}"` : "");
 
             if (kind === "excel") {
                 Exporter.excel({ sheetName: "Timing Belts", columns, rows, filename: "timing-belts" });
             } else {
-                Exporter.pdf({ title: "Timing Belt Stock", subtitle, columns, rows, filename: "timing-belts", landscape: true });
+                Exporter.pdf({ title: "Timing Belt Stock", subtitle, columns, rows, filename: "timing-belts" });
             }
         }
 
